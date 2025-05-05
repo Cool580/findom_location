@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Standort-Sklavenkarte</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+      background-image: url('https://images.unsplash.com/photo-1593642634311-48d7a9b3c14c?auto=format&fit=crop&w=1950&q=80');
+      background-size: cover;
+      background-blend-mode: multiply;
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+    .card {
+      background: rgba(30, 0, 20, 0.85);
+      border: 2px solid #b30059;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+    .card h1 {
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+      color: #ff0066;
+    }
+    .card p {
+      margin: 8px 0;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    .btn {
+      margin-top: 20px;
+      background: #ff0066;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .btn:hover {
+      background: #e60059;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Wo bist du, mein Sklave?</h1>
+    <p id="status">Standort wird ermittelt…</p>
+    <p id="info"></p>
+    <button class="btn" onclick="fetchLocation()">Standort aktualisieren</button>
+  </div>
+
+  <script>
+    async function fetchLocation() {
+      const statusEl = document.getElementById('status');
+      const infoEl = document.getElementById('info');
+      statusEl.textContent = 'Bitte warten…';
+      infoEl.textContent = '';
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        statusEl.textContent = `IP: ${data.ip}`;
+        infoEl.innerHTML = `
+          <strong>Land:</strong> ${data.country_name}<br>
+          <strong>Region:</strong> ${data.region}<br>
+          <strong>Stadt:</strong> ${data.city}<br>
+          <strong>Koordinaten:</strong> ${data.latitude}, ${data.longitude}
+        `;
+      } catch (err) {
+        statusEl.textContent = 'Fehler bei der Ermittlung!';
+        console.error(err);
+      }
+    }
+    // automatisch beim Laden
+    fetchLocation();
+  </script>
+</body>
+</html>
+
