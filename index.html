@@ -3,102 +3,138 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tech Goddess Eda's Locator</title>
+  <title>Tech Goddess Eda’s Portal</title>
   <style>
-    /* Reset & base */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      height: 100vh; 
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
       font-family: 'Helvetica Neue', Arial, sans-serif;
       color: #fff;
     }
-    .card {
-      background: rgba(0, 0, 0, 0.7);
+    .container {
+      background: rgba(0, 0, 0, 0.85);
       border-radius: 12px;
       padding: 2rem;
-      width: 100%;
-      max-width: 360px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
       text-align: center;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     }
     h1 {
-      font-size: 1.75rem;
+      font-size: 1.8rem;
       margin-bottom: 1rem;
-      color: #f39c12;
+      color: #f1c40f;
     }
-    p.description {
+    p.lead {
       margin-bottom: 1.5rem;
       font-size: 1rem;
-      line-height: 1.4;
-      color: #ddd;
+      color: #ecf0f1;
     }
-    .status {
-      margin: 0.5rem 0;
-      font-weight: bold;
-      color: #e74c3c;
-    }
-    .details {
-      margin: 0.5rem 0;
-      font-size: 0.9rem;
-      color: #bdc3c7;
-    }
-    button {
-      margin-top: 1.5rem;
+    button, input[type="submit"] {
+      margin-top: 1rem;
       padding: 0.75rem 1.5rem;
       font-size: 1rem;
       color: #111;
-      background: #f39c12;
+      background: #f1c40f;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
       transition: background 0.3s ease;
       width: 100%;
     }
-    button:hover {
-      background: #d35400;
+    button:hover, input[type="submit"]:hover {
+      background: #d4ac0d;
+    }
+    label {
+      display: block;
+      margin: 0.75rem 0 0.25rem;
+      font-size: 0.9rem;
+      color: #ecf0f1;
+      text-align: left;
+    }
+    input[type="text"], input[type="email"], input[type="file"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+    #geoStatus {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #2ecc71;
+      min-height: 1.2rem;
+    }
+    .success {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #2ecc71;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Greetings, I’m Tech Goddess Eda</h1>
-    <p class="description">By analyzing your IP address, I now know where you are on this planet.</p>
-    <p id="status" class="status">Determining location…</p>
-    <div id="details" class="details"></div>
-    <button onclick="fetchLocation()">Update Location</button>
+  <div class="container">
+    <h1>Welcome to Tech Goddess Eda’s Portal</h1>
+    <p class="lead">Securely share your details and allow precise location detection:</p>
+
+    <button type="button" id="locateBtn">Detect Exact Location</button>
+    <p id="geoStatus"></p>
+
+    <form id="userForm">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" placeholder="Enter your email" required>
+
+      <label for="address">Postal Address</label>
+      <input type="text" id="address" name="address" placeholder="Street, City, Country" required>
+
+      <label for="photo">Upload Photo</label>
+      <input type="file" id="photo" name="photo" accept="image/*" required>
+
+      <!-- Hidden fields for GPS coordinates -->
+      <input type="hidden" id="latitude" name="latitude">
+      <input type="hidden" id="longitude" name="longitude">
+
+      <input type="submit" value="Submit Details">
+      <p id="message" class="success"></p>
+    </form>
   </div>
 
   <script>
-    async function fetchLocation() {
-      const statusEl = document.getElementById('status');
-      const detailsEl = document.getElementById('details');
-
-      statusEl.textContent = 'Please wait...';
-      detailsEl.textContent = '';
-
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-
-        statusEl.textContent = `IP: ${data.ip}`;
-        detailsEl.innerHTML = `
-          <p><strong>Country:</strong> ${data.country_name}</p>
-          <p><strong>Region:</strong> ${data.region}</p>
-          <p><strong>City:</strong> ${data.city}</p>
-          <p><strong>Coordinates:</strong> ${data.latitude}, ${data.longitude}</p>
-        `;
-      } catch (error) {
-        statusEl.textContent = 'Location detection failed';
-        detailsEl.textContent = '';
+    // Precise GPS location
+    document.getElementById('locateBtn').addEventListener('click', () => {
+      const statusEl = document.getElementById('geoStatus');
+      if (!navigator.geolocation) {
+        statusEl.textContent = 'Geolocation not supported.';
+        return;
       }
-    }
+      statusEl.textContent = 'Locating...';
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const lat = position.coords.latitude.toFixed(6);
+          const lon = position.coords.longitude.toFixed(6);
+          statusEl.textContent = `Latitude: ${lat}, Longitude: ${lon}`;
+          document.getElementById('latitude').value = lat;
+          document.getElementById('longitude').value = lon;
+        },
+        () => statusEl.textContent = 'Location detection failed.',
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
 
-    // Automatically fetch on load
-    fetchLocation();
+    // Form submission demo
+    document.getElementById('userForm').addEventListener('submit', e => {
+      e.preventDefault();
+      document.getElementById('message').textContent = 'Thank you! Your details have been submitted.';
+      e.target.reset();
+      document.getElementById('geoStatus').textContent = '';
+    });
   </script>
 </body>
 </html>
