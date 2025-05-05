@@ -70,7 +70,7 @@
       min-height: 1.2rem;
     }
     #addressDisplay {
-      margin-top: 0.5rem;
+      margin: 0.5rem 0;
       font-size: 0.9rem;
       color: #ecf0f1;
       min-height: 2rem;
@@ -133,19 +133,26 @@
           document.getElementById('latitude').value = lat;
           document.getElementById('longitude').value = lon;
 
+          // Use CORS proxy for reverse geocoding
+          const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
+          const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(nomUrl);
+          console.log('Fetching address via proxy:', proxy);
           try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+            const res = await fetch(proxy);
             const data = await res.json();
+            console.log('Reverse geocode result:', data);
             const addr = data.address;
             addressEl.innerHTML = `
               <strong>${data.display_name}</strong><br>
               <small>${addr.road || ''} ${addr.house_number || ''}, ${addr.suburb || ''}, ${addr.city || addr.town || addr.village || ''}, ${addr.state || ''}, ${addr.country}</small>
             `;
           } catch (err) {
-            addressEl.textContent = 'Reverse geocoding failed';
+            console.error('Reverse geocode error:', err);
+            addressEl.textContent = 'Address lookup failed';
           }
         },
-        () => {
+        (err) => {
+          console.error('Geolocation error:', err);
           statusEl.textContent = 'Location detection failed';
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
