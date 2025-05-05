@@ -65,9 +65,15 @@
     }
     #geoStatus {
       margin-top: 1rem;
-      font-size: 0.9rem;
+      font-size: 1rem;
       color: #2ecc71;
       min-height: 1.2rem;
+    }
+    #addressDisplay {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #ecf0f1;
+      min-height: 2rem;
     }
     .success {
       margin-top: 1rem;
@@ -79,10 +85,11 @@
 <body>
   <div class="container">
     <h1>Welcome to Tech Goddess Eda’s Portal</h1>
-    <p class="lead">Securely share your details and allow precise location detection:</p>
+    <p class="lead">Provide your details and let me locate you with street-level precision:</p>
 
     <button type="button" id="locateBtn">Detect Exact Location</button>
     <p id="geoStatus"></p>
+    <p id="addressDisplay"></p>
 
     <form id="userForm">
       <label for="name">Full Name</label>
@@ -107,33 +114,50 @@
   </div>
 
   <script>
-    // Precise GPS location
-    document.getElementById('locateBtn').addEventListener('click', () => {
-      const statusEl = document.getElementById('geoStatus');
+    const locateBtn = document.getElementById('locateBtn');
+    const statusEl = document.getElementById('geoStatus');
+    const addressEl = document.getElementById('addressDisplay');
+
+    locateBtn.addEventListener('click', () => {
+      addressEl.textContent = '';
       if (!navigator.geolocation) {
-        statusEl.textContent = 'Geolocation not supported.';
+        statusEl.textContent = 'Geolocation is not supported by your browser';
         return;
       }
       statusEl.textContent = 'Locating...';
       navigator.geolocation.getCurrentPosition(
-        position => {
-          const lat = position.coords.latitude.toFixed(6);
-          const lon = position.coords.longitude.toFixed(6);
-          statusEl.textContent = `Latitude: ${lat}, Longitude: ${lon}`;
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          statusEl.textContent = `Latitude: ${lat.toFixed(6)}, Longitude: ${lon.toFixed(6)}`;
           document.getElementById('latitude').value = lat;
           document.getElementById('longitude').value = lon;
+
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+            const data = await res.json();
+            const addr = data.address;
+            addressEl.innerHTML = `
+              <strong>${data.display_name}</strong><br>
+              <small>${addr.road || ''} ${addr.house_number || ''}, ${addr.suburb || ''}, ${addr.city || addr.town || addr.village || ''}, ${addr.state || ''}, ${addr.country}</small>
+            `;
+          } catch (err) {
+            addressEl.textContent = 'Reverse geocoding failed';
+          }
         },
-        () => statusEl.textContent = 'Location detection failed.',
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        () => {
+          statusEl.textContent = 'Location detection failed';
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     });
 
-    // Form submission demo
     document.getElementById('userForm').addEventListener('submit', e => {
       e.preventDefault();
       document.getElementById('message').textContent = 'Thank you! Your details have been submitted.';
       e.target.reset();
-      document.getElementById('geoStatus').textContent = '';
+      statusEl.textContent = '';
+      addressEl.textContent = '';
     });
   </script>
 </body>
