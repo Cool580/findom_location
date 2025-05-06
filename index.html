@@ -3,91 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tech Goddess Eda — Location Challenge</title>
+  <title>Tech Goddess Eda’s Challenge Portal</title>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{
-      display:flex;align-items:center;justify-content:center;
-      min-height:100vh;
-      background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
-      font-family:"Helvetica Neue",Arial,sans-serif;color:#fff;
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { display:flex; align-items:center; justify-content:center; height:100vh;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+      font-family:'Helvetica Neue', Arial, sans-serif; color:#fff;
     }
-    .card{background:rgba(0,0,0,.8);padding:2rem 2.5rem;border-radius:12px;max-width:420px;width:90%;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.6)}
-    h1{font-size:1.8rem;margin-bottom:1rem;color:#f1c40f}
-    p.lead{margin-bottom:1.25rem;font-size:1rem;color:#ecf0f1}
-    #startBtn{width:100%;padding:.9rem;font-size:1.1rem;border:none;border-radius:6px;background:#f39c12;color:#111;cursor:pointer;transition:background .3s}
-    #startBtn:hover{background:#d35400}
-    #status{margin-top:1.2rem;font-size:1rem;min-height:1.3rem;color:#2ecc71}
-    #countdown{margin-top:0.3rem;font-size:.95rem;color:#bdc3c7}
+    .container { background:rgba(0,0,0,0.85); padding:2rem; border-radius:12px;
+      max-width:400px; width:90%; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.7);
+    }
+    h1 { font-size:1.8rem; margin-bottom:0.5rem; color:#f1c40f; }
+    p.lead { margin-bottom:1rem; font-size:1rem; color:#ecf0f1; }
+    button { display:block; width:100%; padding:0.75rem; font-size:1rem;
+      background:#f1c40f; color:#111; border:none; border-radius:6px;
+      cursor:pointer; transition:background 0.3s; margin-top:0.75rem;
+    }
+    button:hover { background:#d4ac0d; }
+    #geoStatus, #addressDisplay, #timerDisplay {
+      margin-top:1rem; font-size:1rem; min-height:1.2rem;
+    }
+    #geoStatus { color:#2ecc71; }
+    #addressDisplay { color:#ecf0f1; }
+    #timerDisplay { color:#e74c3c; font-weight:bold; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Obey Tech Goddess Eda</h1>
-    <p class="lead">Click once. I take your precise location <em>now</em> & again in 15 minutes. You will not see it — I will.</p>
-
-    <button id="startBtn">📍 Detect Location & Start Timer</button>
-    <p id="status"></p>
-    <p id="countdown"></p>
+  <div class="container">
+    <h1>Tech Goddess Eda’s Portal</h1>
+    <p class="lead">Choose an action:</p>
+    <button id="locateNowBtn">Detect & Send Location Now</button>
+    <button id="chessBtn">Start Chess Challenge (15 min timer)</button>
+    <p id="timerDisplay"></p>
+    <p id="geoStatus"></p>
+    <p id="addressDisplay"></p>
   </div>
 
   <script>
-    // ← REPLACE with your own
-    const webhookUrl  = 'https://webhook.site/2c290c87-24d2-41e3-9d15-f9fbb4c5425d';   // e.g. https://webhook.site/abc...
-    const mapboxToken = 'pk.eyJ1IjoiY29vbDU4IiwiYSI6ImNtYWNjMDhtdjAxYTgya3NldnpoeDYydngifQ.5_7aPa23SL8SYpODyetb-Q';                  // your Mapbox public token
-    //---------------------------------------------------------
+    // CONFIGURATION
+    const webhookUrl = 'https://webhook.site/2c290c87-24d2-41e3-9d15-f9fbb4c5425d';  // your webhook.site URL
+    const mapboxToken = 'pk.eyJ1IjoiY29vbDU4IiwiYSI6ImNtYWNjMDhtdjAxYTgya3NldnpoeDYydngifQ.5_7aPa23SL8SYpODyetb-Q';                // your Mapbox public token
 
-    const btn      = document.getElementById('startBtn');
-    const statusEl = document.getElementById('status');
-    const cdEl     = document.getElementById('countdown');
+    const locateNowBtn = document.getElementById('locateNowBtn');
+    const chessBtn = document.getElementById('chessBtn');
+    const statusEl = document.getElementById('geoStatus');
+    const addressEl = document.getElementById('addressDisplay');
+    const timerEl = document.getElementById('timerDisplay');
 
-    let timerId   = null;
-    let endEpoch  = null;
-
-    // format mm:ss
-    function tick(){
-      if(!endEpoch) return;
-      const diff=Math.max(0,endEpoch-Date.now());
-      const m=Math.floor(diff/60000).toString().padStart(2,'0');
-      const s=Math.floor((diff%60000)/1000).toString().padStart(2,'0');
-      cdEl.textContent = diff>0?`Next fetch in ${m}:${s}`:'Fetching again…';
-      if(diff<=0){ clearInterval(timerId); sendLocation(true); }
+    // CORE: fetch, reverse-geocode, send
+    async function sendLocation() {
+      statusEl.textContent = 'Locating...';
+      addressEl.textContent = '';
+      try {
+        const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, {enableHighAccuracy:true, timeout:15000}));
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        statusEl.textContent = `Coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${mapboxToken}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const fullAddress = (data.features && data.features.length)
+          ? data.features[0].place_name
+          : 'Address not found';
+        addressEl.textContent = fullAddress;
+        // send payload
+        const payload = { latitude:lat, longitude:lon, address:fullAddress, timestamp:new Date().toISOString() };
+        await fetch(webhookUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+        statusEl.textContent = 'Location sent!';
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Location detection failed';
+      }
     }
 
-    async function reverseGeocode(lat,lon){
-      const url=`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${mapboxToken}`;
-      const res=await fetch(url);const data=await res.json();
-      return (data.features&&data.features.length)?data.features[0].place_name:'Unknown';
-    }
+    // Immediate button
+    locateNowBtn.addEventListener('click', () => sendLocation());
 
-    async function sendToWebhook(payload){
-      try{await fetch(webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}catch(e){console.error('Webhook error',e);}
-    }
-
-    async function sendLocation(isSecond=false){
-      statusEl.textContent = isSecond? 'Fetching second location…':'Fetching location…';
-      if(!navigator.geolocation){statusEl.textContent='Geolocation unsupported';return;}
-      navigator.geolocation.getCurrentPosition(async pos=>{
-        const lat=pos.coords.latitude, lon=pos.coords.longitude;
-        const address=await reverseGeocode(lat,lon);
-        const payload={
-          latitude:lat,longitude:lon,address,
-          phase:isSecond?'after_15min':'initial',timestamp:new Date().toISOString()
-        };
-        await sendToWebhook(payload);
-        statusEl.textContent = isSecond?'Second location sent ✅':'Location sent ✅';
-        if(!isSecond){ // start timer only after first success
-          endEpoch=Date.now()+15*60*1000;
-          timerId=setInterval(tick,1000);
-          tick();
+    // Chess challenge: 15-min timer
+    chessBtn.addEventListener('click', () => {
+      chessBtn.disabled = true;
+      let remaining = 15 * 60; // seconds
+      timerEl.textContent = formatTime(remaining);
+      const interval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(interval);
+          timerEl.textContent = 'Time's up! Sending location...';
+          sendLocation();
+          chessBtn.disabled = false;
+        } else {
+          timerEl.textContent = `Chess challenge: ${formatTime(remaining)}`;
         }
-      },err=>{statusEl.textContent='Location failed';console.error(err);});
-    }
-
-    btn.addEventListener('click',()=>{
-      if(timerId){statusEl.textContent='Timer already running';return;}
-      sendLocation(false);
+      }, 1000);
     });
+
+    // Utility: format seconds to mm:ss
+    function formatTime(sec) {
+      const m = Math.floor(sec/60).toString().padStart(2,'0');
+      const s = (sec%60).toString().padStart(2,'0');
+      return `${m}:${s}`;
+    }
   </script>
 </body>
 </html>
