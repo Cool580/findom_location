@@ -38,6 +38,10 @@
     const timerEl = document.getElementById('timer');
     const statusEl = document.getElementById('status');
     const addressEl = document.getElementById('address');
+nowBtn.addEventListener('click', () => {
+  console.log('NOW button clicked');
+  fetchAndSend();
+});
 
     async function fetchAndSend() {
       statusEl.textContent = 'Locating...';
